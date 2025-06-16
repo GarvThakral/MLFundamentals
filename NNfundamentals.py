@@ -19,7 +19,7 @@ def initialize_parameters(n_x,n_h,n_y):
     }
     return parameters 
 
-def forward_propagation(X,Y,parameters):
+def forward_propagation(X,Y,parameters,train = True):
     # Fetching Parameters
     W1 = parameters["W1"]
     b1 = parameters["b1"]
@@ -33,7 +33,10 @@ def forward_propagation(X,Y,parameters):
     # # Calculating the linear function and activation for layer 1
     Z2 = np.dot(W2,A1) + b2
     A2 = sigmoid(Z2)
-    cost = compute_cost(A2,Y)
+    if train:
+        cost = compute_cost(A2,Y)
+    else:
+        cost = 0
     cache = {
         "Z1":Z1,
         "A1":A1,
@@ -45,7 +48,7 @@ def forward_propagation(X,Y,parameters):
 def compute_cost(Y_hat,Y):
     # X shape
     m = Y.shape[1]
-    cost = -1/m*np.sum(Y*np.log(Y_hat))+((1-Y)*np.log(1-Y_hat))
+    cost = -1/m*np.sum(Y*np.log(Y_hat)+(1-Y)*np.log(1-Y_hat))
     return cost
 
 def backward_propagation(X,Y,cache,parameters):
@@ -90,8 +93,8 @@ def update_parameters(parameters,grads,learning_rate):
 
     W1 -= learning_rate*dW1 
     W2 -= learning_rate*dW2 
-    B1 -= learning_rate*dB1 
-    B2 -= learning_rate*dB2 
+    b1 -= learning_rate*dB1 
+    b2 -= learning_rate*dB2 
 
     parameters = {
         "W1":W1,
@@ -99,16 +102,36 @@ def update_parameters(parameters,grads,learning_rate):
         "W2":W2,
         "b2":b2
     }
-    
+
     return parameters
 
-
+def train(X,Y,iterations,learning_rate):
+    params = initialize_parameters(3,4,1)
+    costArr = []
+    for i in range(0,iterations):
+        cache,cost = forward_propagation(X,Y,params)
+        costArr.append(cost)
+        grads = backward_propagation(X,Y,cache,params)
+        params = update_parameters(params,grads,learning_rate)
+        if i%100 == 0:
+            print(f"Iteration {i} — Cost: {cost}")
+    tuned_weights = {
+        "W1":params["W1"],
+        "W2":params["W2"],
+        "b1":params["b1"],
+        "b2":params["b2"]
+    }
+    return tuned_weights
+def predict(X,params):
+    cache , cost = forward_propagation(X = X,Y = 0,parameters=params,train = False)
+    return cache["A2"]
 def model():
     pass
 
 # Initializing Values
 X = np.array([[1,2,3],[4,5,6],[7,8,9]])
 Y = np.array([[1,0,1]])
-params = initialize_parameters(3,4,1)
-cache,cost = forward_propagation(X,Y,params)
-grads = backward_propagation(X,Y,cache,params)
+tuned_weights = train(X,Y,2000,0.01)
+result = predict(np.array([[2],[5],[8]]),params=tuned_weights)
+result = result[0] >= 0.5
+print(result)
