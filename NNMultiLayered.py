@@ -50,9 +50,6 @@ def L_model_forward(X,parameters):
     caches.append(cache)
     return AL,caches
 
-
-def update_parameters(paramters,grads):
-    pass
         
 
 def compute_cost(AL,Y):
@@ -65,11 +62,10 @@ def linear_activation_backward(dA , cache ,activation):
     if activation == "sigmoid":
         dZ = sigmoid_backward(dA,activation_cache)    
         dA_prev,dW,db = linear_backward(dZ,cache)
-        return dA_prev , dW , db
     elif activation == "relu":
         dZ = relu_backward(dA,activation_cache)   
         dA_prev,dW,db = linear_backward(dZ,cache) 
-        return dA_prev , dW , db
+    return dA_prev , dW , db
 
 def linear_backward(dZ, cache):
     linear_cache, activation_cache = cache
@@ -93,16 +89,36 @@ def sigmoid_backward(dA,activation_cache):
     dZ = dA * A * (1 - A)
     return dZ
 
+def update_parameters(parameters,grads,learnin_rate):
+    L = len(parameters) // 2
+    for l in range(1,L):
+        parameters["W"+str(l)] -= learnin_rate*grads["W"+str(l)]
+        parameters["b"+str(l)] -= learnin_rate*grads["b"+str(l)]
+    return parameters
 def L_model_backward(AL,Y,caches):
+    A = AL
     grads = {}
     L = len(caches) # the number of layers
     m = AL.shape[1]
     Y = Y.reshape(AL.shape)
+    current_cache = caches[L-1]
     dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
-    for l in reversed(range(0,L-1)):
-        dA_prev , dW , db = linear_activation_forward(A_prev,W,b,activation) 
+    dA_prev_temp, dW_temp, db_temp = linear_activation_backward(dAL, current_cache, "sigmoid")
+    grads["dA" + str(L-1)] = dA_prev_temp
+    grads["dW" + str(L)] = dW_temp
+    grads["db" + str(L)] = db_temp
+    
+    for l in reversed(range(L-1)):
+        current_cache = caches[l]
+        dA_prev_temp, dW_temp, db_temp = linear_activation_backward(dA_prev_temp, current_cache, "relu") 
+        grads["dA" + str(l)] = dA_prev_temp
+        grads["dW" + str(l + 1)] = dW_temp
+        grads["db" + str(l + 1)] = db_temp
+    return grads
 
 dimensions = [3,4,1]
 
 parameters = initialize_weights(dimensions)
 print(parameters)
+
+linear_forward(A,W,b)
