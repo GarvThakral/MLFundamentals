@@ -22,8 +22,8 @@ def sigmoid_backward(dA,activation_cache):
 def initialize_parameters_deep(layers_dims):
     parameters = {}
     for l in range(1,len(layers_dims)):
-        parameters["W"+str(l)] = np.random.randn(layers_dims[l],layers_dims[l-1])
-        parameters["b"+str(l)] = np.random.randn(layers_dims[l],1)
+        parameters["W"+str(l)] = np.random.randn(layers_dims[l],layers_dims[l-1])*0.01
+        parameters["b"+str(l)] = np.zeros((layers_dims[l],1))
     return parameters
 
 def linear_forward(A_prev,W,b):
@@ -61,11 +61,11 @@ def L_model_forward(X,Y,parameters):
 
 def compute_cost(Y_hat,Y):
     m = Y.shape[1]
-    result = -1/m*(np.sum(Y*np.log(Y_hat)+(1-Y)*np.log(1-Y_hat)))
+    epsilon = 1e-8
+    result = -1/m*(np.sum(Y*np.log(Y_hat + epsilon)+(1-Y)*np.log(1 - Y_hat + epsilon)))
     return result
 
-def linear_backward(dZ, cache):
-    linear_cache, activation_cache = cache
+def linear_backward(dZ, linear_cache):
     A_prev, W, b = linear_cache
     m = A_prev.shape[1]
     dW = 1/m*np.dot(dZ,A_prev.T)
@@ -81,10 +81,10 @@ def backward_linear_activation(dA , current_cache , activation):
     db = None
     if activation == "relu":
         dZ = relu_backward(dA,activation_cache)
-        dA_prev,dW,db = linear_backward(dZ,current_cache)
+        dA_prev,dW,db = linear_backward(dZ,linear_cache)
     elif activation == "sigmoid":
         dZ = sigmoid_backward(dA,activation_cache)
-        dA_prev,dW,db = linear_backward(dZ,current_cache)
+        dA_prev,dW,db = linear_backward(dZ,linear_cache)
     return dA_prev , dW , db
 
 def L_model_backward(AL,Y,caches):
@@ -112,14 +112,25 @@ def update_parameters(parameters , grads , learning_rate):
         parameters["b"+str(l)] -= learning_rate*grads["db"+str(l)]
     return parameters
 
+def L_model_full(X,Y,num_iterations,learning_rate):
+    layers_dims = [3,4,1]
+    parameters = initialize_parameters_deep(layers_dims)
+    for i in range(num_iterations):
+        AL,cost,caches = L_model_forward(X,Y,parameters)
+        grads = L_model_backward(AL,Y,caches)
+        parameters = update_parameters(parameters,grads,learning_rate)
+        if i%100 == 0:
+            print(cost)
+    return parameters
+
+
 # Initialising testing shit
 np.random.seed(42)
 ## Sample X
-X = np.random.randn(200, 3)  # 200 samples, 3 features
+X = np.random.randn(3, 200)  # 200 samples, 3 features
 ## Sample Y
-Y = (np.random.rand(200) > 0.5).astype(int)  # Binary labels (0 or 1)
+Y = (np.random.rand(1,200) > 0.5).astype(int)  # Binary labels (0 or 1)
 ## Sample layer dimensions
 layers_dims = [3,4,1]
 
-parameters = initialize_parameters_deep(layers_dims)
-update_parameters(parameters,1,1)
+parameters = L_model_full(X,Y,20000,0.9)
