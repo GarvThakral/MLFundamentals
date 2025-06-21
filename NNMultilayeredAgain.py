@@ -113,7 +113,7 @@ def update_parameters(parameters , grads , learning_rate):
     return parameters
 
 def L_model_full(X,Y,num_iterations,learning_rate):
-    layers_dims = [3,4,1]
+    layers_dims = [3, 16, 8, 1]
     parameters = initialize_parameters_deep(layers_dims)
     for i in range(num_iterations):
         AL,cost,caches = L_model_forward(X,Y,parameters)
@@ -124,13 +124,52 @@ def L_model_full(X,Y,num_iterations,learning_rate):
     return parameters
 
 
-# Initialising testing shit
-np.random.seed(42)
-## Sample X
-X = np.random.randn(3, 200)  # 200 samples, 3 features
-## Sample Y
-Y = (np.random.rand(1,200) > 0.5).astype(int)  # Binary labels (0 or 1)
-## Sample layer dimensions
-layers_dims = [3,4,1]
+def L_model_forward_no_cost(X, parameters):
+    A = X
+    caches = []
+    L = len(parameters)//2
+    for l in range(1, L):
+        A, cache = linear_activation_forward(A, parameters[f"W{l}"], parameters[f"b{l}"], "relu")
+        caches.append(cache)
+    AL, cache = linear_activation_forward(A, parameters[f"W{L}"], parameters[f"b{L}"], "sigmoid")
+    caches.append(cache)
+    return AL, caches
 
-parameters = L_model_full(X,Y,20000,0.9)
+
+def predict(X, parameters):
+    """
+    Arguments:
+    X          -- input data of size (n_x, m)
+    parameters -- python dictionary containing your trained parameters
+    
+    Returns:
+    preds      -- vector of predictions of size (1, m), values are 0 or 1
+    """
+    # Forward propagation
+    AL , _ = L_model_forward_no_cost(X, parameters) # we ignore Y and caches here
+    
+    # Convert probabilities to 0/1 predictions
+    preds = (AL > 0.5).astype(int)
+    return preds
+
+
+from sklearn.datasets import load_breast_cancer
+
+data = load_breast_cancer()
+X_full, Y_full = data.data, data.target
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X = scaler.fit_transform(X_full[:, [0,1,2]]).T
+Y = Y_full.reshape(1, -1)
+
+
+
+# Train
+parameters = L_model_full(X, Y, num_iterations=20000, learning_rate=0.1)
+
+# Predict
+predictions = predict(X, parameters)
+
+accuracy = np.mean(predictions == Y) * 100
+print(f"Train accuracy: {accuracy:.2f}%")
